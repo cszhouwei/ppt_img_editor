@@ -1,0 +1,104 @@
+version: '3.8'
+
+services:
+  # PostgreSQL 数据库
+  postgres:
+    image: postgres:15-alpine
+    container_name: ppt-editor-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: docedit
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ppt-editor-network
+
+  # MinIO 对象存储
+  minio:
+    image: minio/minio:latest
+    container_name: ppt-editor-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ppt-editor-network
+
+  # MinIO 初始化(创建 bucket)
+  minio-init:
+    image: minio/mc:latest
+    container_name: ppt-editor-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      mc mb myminio/doc-edit --ignore-existing;
+      mc anonymous set download myminio/doc-edit;
+      echo 'MinIO bucket initialized successfully';
+      "
+    networks:
+      - ppt-editor-network
+
+  # FastAPI 文档处理服务
+  doc_process:
+    build:
+      context: ./services/doc_process
+      dockerfile: Dockerfile
+    container_name: ppt-editor-doc-process
+    environment:
+      PORT: 8080
+      BASE_URL: http://localhost:8080
+      S3_ENDPOINT: http://minio:9000
+      S3_PUBLIC_ENDPOINT: http://localhost:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      S3_BUCKET: doc-edit
+      S3_REGION: us-east-1
+      S3_SECURE: "false"
+      POSTGRES_DSN: postgresql+psycopg://postgres:postgres@postgres:5432/docedit
+      LOG_LEVEL: INFO
+      OCR_PROVIDER: mock
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    volumes:
+      - ./services/doc_process/src:/app/src
+      - ./testdata:/app/testdata
+    networks:
+      - ppt-editor-network
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8080 --reload
+
+volumes:
+  postgres_data:
+  minio_data:
+
+networks:
+  ppt-editor-network:
+    driver: bridge
