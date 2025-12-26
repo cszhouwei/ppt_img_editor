@@ -35,6 +35,16 @@ curl http://localhost:8080/health
 # 上传测试图片
 curl -X POST http://localhost:8080/v1/assets/upload \
   -F "file=@testdata/images/sample_slide.png"
+
+# 创建 page
+curl -X POST http://localhost:8080/v1/pages \
+  -H "Content-Type: application/json" \
+  -d '{"image_url":"http://localhost:9000/doc-edit/assets/ast_xxx.png","width":1920,"height":1080}'
+
+# OCR 分析 (使用 Mock)
+curl -X POST http://localhost:8080/v1/pages/page_xxx/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"provider":"mock","lang_hints":["zh-Hans","en"]}'
 ```
 
 ### 访问地址
@@ -86,8 +96,15 @@ repo/
 - [x] MinIO 存储封装
 - [x] POST /v1/assets/upload 接口
 
+### Milestone 2 - Mock OCR 和 Page 管理 ✅
+- [x] 数据库表设计 (pages, candidates)
+- [x] SQLAlchemy models 实现
+- [x] Mock OCR provider
+- [x] POST /v1/pages 接口 (创建 page)
+- [x] POST /v1/pages/{id}/analyze 接口 (Mock OCR 分析)
+- [x] GET /v1/pages/{id}/candidates 接口 (查询候选框)
+
 ### 后续计划
-- [ ] Milestone 2: Analyze (mock OCR)
 - [ ] Milestone 3: Patch pipeline
 - [ ] Milestone 4: 文本层编辑与保存
 - [ ] Milestone 5: 导出

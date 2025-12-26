@@ -16,6 +16,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 复制源代码
 COPY src/ ./src/
 
+# 复制 mock 数据
+COPY mock/ ./mock/
+
+# 复制测试目录
+COPY tests/ ./tests/
+
 # 暴露端口
 EXPOSE 8080
 

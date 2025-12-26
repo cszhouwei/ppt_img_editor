@@ -1,12 +1,41 @@
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from src.main import app
+from src.models.base import Base, get_db
+from src.models import Page, Candidate  # Import models to register tables
+
+# 使用内存 SQLite 数据库进行测试
+TEST_DATABASE_URL = "sqlite:///:memory:"
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def client():
     """测试客户端"""
-    return TestClient(app)
+    # 确保 models 已经注册到 Base.metadata
+    import src.models.page
+    import src.models.candidate
+
+    # 创建测试数据库引擎和会话
+    engine = create_engine(TEST_DATABASE_URL, connect_args={"check_same_thread": False})
+    Base.metadata.create_all(bind=engine)
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+    def override_get_db():
+        db = TestingSessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    yield TestClient(app)
+
+    app.dependency_overrides.clear()
+    Base.metadata.drop_all(bind=engine)
+    engine.dispose()
 
 
 @pytest.fixture

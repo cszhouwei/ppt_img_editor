@@ -5,7 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
 from .storage.minio_client import get_minio_client
-from .api import health, assets
+from .models.base import get_engine, Base
+from .api import health, assets, pages
 
 # 配置日志
 settings = get_settings()
@@ -20,6 +21,15 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
     logger.info("Starting up doc_process service...")
+
+    # 初始化数据库表
+    try:
+        engine = get_engine()
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables created/verified")
+    except Exception as e:
+        logger.error(f"Failed to initialize database: {e}")
+        raise
 
     # 初始化 MinIO 连接
     try:
@@ -54,6 +64,7 @@ app.add_middleware(
 # 注册路由
 app.include_router(health.router, tags=["health"])
 app.include_router(assets.router, prefix="/v1/assets", tags=["assets"])
+app.include_router(pages.router, prefix="/v1/pages", tags=["pages"])
 
 
 @app.get("/")
