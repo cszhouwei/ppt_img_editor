@@ -322,9 +322,10 @@ async def generate_patch_for_candidate(
 
         logger.info(f"Generating patch for page={page_id}, candidate={request.candidate_id}")
 
-        # 下载原图
+        # 下载原图 (将 localhost 替换为 minio 用于 Docker 内部网络)
+        internal_url = page.image_url.replace("http://localhost:9000", "http://minio:9000")
         async with httpx.AsyncClient() as client:
-            image_response = await client.get(page.image_url, timeout=30.0)
+            image_response = await client.get(internal_url, timeout=30.0)
             if image_response.status_code != 200:
                 raise HTTPException(
                     status_code=500,
@@ -443,9 +444,10 @@ async def estimate_style_for_candidate(
 
         logger.info(f"Estimating style for page={page_id}, candidate={request.candidate_id}")
 
-        # 下载原图
+        # 下载原图 (将 localhost 替换为 minio 用于 Docker 内部网络)
+        internal_url = page.image_url.replace("http://localhost:9000", "http://minio:9000")
         async with httpx.AsyncClient() as client:
-            image_response = await client.get(page.image_url, timeout=30.0)
+            image_response = await client.get(internal_url, timeout=30.0)
             if image_response.status_code != 200:
                 raise HTTPException(
                     status_code=500,
