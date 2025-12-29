@@ -11,8 +11,12 @@ from ..models import Page, Candidate, Patch
 from ..ocr import MockOCRProvider
 from ..storage.minio_client import get_minio_client
 from ..patch import generate_patch
+from ..utils.text_style import estimate_text_style
 from minio import Minio
 import httpx
+import io
+import numpy as np
+import cv2
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -66,6 +70,17 @@ class PatchRequest(BaseModel):
 class PatchResponse(BaseModel):
     """生成 patch 响应"""
     patch: dict
+
+
+class EstimateStyleRequest(BaseModel):
+    """估计文本样式请求"""
+    candidate_id: str
+
+
+class EstimateStyleResponse(BaseModel):
+    """估计文本样式响应"""
+    candidate_id: str
+    style: dict
 
 
 @router.post("", response_model=CreatePageResponse)
@@ -361,3 +376,83 @@ async def generate_patch_for_candidate(
         db.rollback()
         logger.error(f"Unexpected error generating patch: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to generate patch")
+
+
+@router.post("/{page_id}/estimate-style", response_model=EstimateStyleResponse)
+async def estimate_style_for_candidate(
+    page_id: str,
+    request: EstimateStyleRequest,
+    db: Session = Depends(get_db)
+) -> EstimateStyleResponse:
+    """
+    为指定的 candidate 估计文本样式
+
+    Args:
+        page_id: 页面 ID
+        request: 包含 candidate_id
+
+    Returns:
+        EstimateStyleResponse: 包含估计的样式
+
+    DoD:
+        - 验证 page_id 和 candidate_id 存在
+        - 下载原图
+        - 估计字体颜色、大小、粗细
+        - 返回样式信息
+    """
+    try:
+        # 验证 page 存在
+        page = db.query(Page).filter(Page.id == page_id).first()
+        if not page:
+            raise HTTPException(status_code=404, detail=f"Page not found: {page_id}")
+
+        # 验证 candidate 存在
+        candidate = db.query(Candidate).filter(
+            Candidate.id == request.candidate_id,
+            Candidate.page_id == page_id
+        ).first()
+        if not candidate:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Candidate not found: {request.candidate_id}"
+            )
+
+        logger.info(f"Estimating style for page={page_id}, candidate={request.candidate_id}")
+
+        # 下载原图
+        async with httpx.AsyncClient() as client:
+            image_response = await client.get(page.image_url, timeout=30.0)
+            if image_response.status_code != 200:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to download image: {image_response.status_code}"
+                )
+            image_bytes = image_response.content
+
+        # 解码图像
+        image_array = np.frombuffer(image_bytes, dtype=np.uint8)
+        image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+
+        if image is None:
+            raise HTTPException(status_code=500, detail="Failed to decode image")
+
+        # 估计样式
+        candidate_data = {
+            "quad": candidate.quad,
+            "bbox": candidate.bbox
+        }
+
+        style = estimate_text_style(image, candidate_data)
+
+        logger.info(f"Style estimated successfully for {request.candidate_id}")
+
+        return EstimateStyleResponse(
+            candidate_id=request.candidate_id,
+            style=style
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error estimating style: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to estimate style")

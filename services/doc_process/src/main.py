@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import get_settings
 from .storage.minio_client import get_minio_client
 from .models.base import get_engine, Base
-from .api import health, assets, pages
+from .api import health, assets, pages, projects
 
 # 配置日志
 settings = get_settings()
@@ -65,6 +65,7 @@ app.add_middleware(
 app.include_router(health.router, tags=["health"])
 app.include_router(assets.router, prefix="/v1/assets", tags=["assets"])
 app.include_router(pages.router, prefix="/v1/pages", tags=["pages"])
+app.include_router(projects.router, prefix="/v1/projects", tags=["projects"])
 
 
 @app.get("/")

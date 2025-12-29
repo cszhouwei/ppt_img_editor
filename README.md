@@ -112,10 +112,16 @@ repo/
 - [x] 背景类型分析 (纯色/渐变/复杂)
 - [x] 透明 patch PNG 生成
 
+### Milestone 4 - 文本层编辑与保存 ✅
+- [x] Projects 数据库模型和表
+- [x] POST /v1/projects 接口 (创建项目)
+- [x] GET /v1/projects/{id} 接口 (加载项目)
+- [x] PUT /v1/projects/{id} 接口 (保存项目)
+- [x] DELETE /v1/projects/{id} 接口 (删除项目)
+- [x] 文本样式估计工具 (颜色、字号、字重)
+- [x] POST /v1/pages/{id}/estimate-style 接口 (估计样式)
+
 ### 后续计划
-- [ ] Milestone 4: 文本层编辑与保存
-- [ ] Milestone 5: 导出
-- [ ] Milestone 4: 文本层编辑与保存
 - [ ] Milestone 5: 导出
 - [ ] Milestone 6: 真实 OCR 接入
 
