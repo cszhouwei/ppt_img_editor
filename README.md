@@ -60,9 +60,18 @@ curl -X POST http://localhost:8080/v1/pages/page_xxx/analyze \
 ```
 
 ### 访问地址
-- API 文档: http://localhost:8080/docs
-- MinIO 控制台: http://localhost:9001 (minioadmin/minioadmin)
-- 健康检查: http://localhost:8080/health
+- **前端应用**: http://localhost:3000
+- **API 文档**: http://localhost:8080/docs
+- **MinIO 控制台**: http://localhost:9001 (minioadmin/minioadmin)
+- **健康检查**: http://localhost:8080/health
+
+### 启动前端
+
+```bash
+cd apps/web
+npm install
+npm run dev
+```
 
 ### 常用命令
 ```bash
@@ -151,8 +160,23 @@ repo/
 - [x] 环境变量配置 (Azure/Google)
 - [x] Provider 选择逻辑 (mock/azure/google)
 
-### 后续计划
-- [ ] Milestone 7: 前端实现 (React + TypeScript)
+### Milestone 7 - 前端实现 ✅
+- [x] React + TypeScript + Vite 项目初始化
+- [x] 图片上传组件 (支持拖拽)
+- [x] OCR 结果可视化 (Canvas 渲染)
+- [x] 交互式候选框选择
+- [x] 自动生成 Patch 和文本图层
+- [x] Zustand 状态管理
+- [x] API 服务封装
+- [x] TypeScript 类型定义
+
+### 后续优化
+- [ ] 文本内容编辑
+- [ ] 文本样式编辑 (颜色、字号、字重)
+- [ ] 拖拽调整文本位置
+- [ ] 项目保存/加载UI
+- [ ] 导出功能UI
+- [ ] 图层管理面板
 
 ## 技术栈
 
@@ -161,7 +185,7 @@ repo/
 - **对象存储**: MinIO (S3 兼容)
 - **OCR**: Azure Computer Vision / Google Cloud Vision (可配置为 Mock)
 - **图像处理**: OpenCV + Pillow + NumPy
-- **前端**: React + TypeScript (待实现)
+- **前端**: React 18 + TypeScript + Vite + Zustand
 - **容器化**: Docker + Docker Compose
 
 ## 详细文档
