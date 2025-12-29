@@ -76,7 +76,11 @@ services:
       S3_SECURE: "false"
       POSTGRES_DSN: postgresql+psycopg://postgres:postgres@postgres:5432/docedit
       LOG_LEVEL: INFO
-      OCR_PROVIDER: mock
+      OCR_PROVIDER: ${OCR_PROVIDER:-mock}
+      GOOGLE_CREDENTIALS_PATH: ${GOOGLE_CREDENTIALS_PATH:-}
+      GOOGLE_CREDENTIALS_JSON: ${GOOGLE_CREDENTIALS_JSON:-}
+      AZURE_VISION_ENDPOINT: ${AZURE_VISION_ENDPOINT:-}
+      AZURE_VISION_KEY: ${AZURE_VISION_KEY:-}
     ports:
       - "8080:8080"
     depends_on:

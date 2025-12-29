@@ -42,10 +42,8 @@ export function ImageUploader() {
 
       setLoadingMessage('OCR 识别中...');
 
-      // 3. OCR 分析
-      const analyzeResponse = await analyzePage(pageResponse.page_id, {
-        provider: 'mock', // 可以改为 'azure' 或 'google'
-      });
+      // 3. OCR 分析 (不指定 provider,使用后端配置的默认值)
+      const analyzeResponse = await analyzePage(pageResponse.page_id);
       console.log('OCR completed:', analyzeResponse);
 
       // 4. 更新状态

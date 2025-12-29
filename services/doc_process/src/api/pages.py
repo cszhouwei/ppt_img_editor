@@ -1,6 +1,6 @@
 import logging
 from uuid import uuid4
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -37,7 +37,7 @@ class CreatePageResponse(BaseModel):
 
 class AnalyzeRequest(BaseModel):
     """OCR 分析请求"""
-    provider: str = "mock"
+    provider: Optional[str] = None  # None 表示使用环境变量配置的 provider
     lang_hints: List[str] = ["zh-Hans", "en"]
 
 

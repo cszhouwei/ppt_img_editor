@@ -68,7 +68,8 @@ export async function analyzePage(
   } = {}
 ): Promise<AnalyzeResponse> {
   return api.post(`/v1/pages/${pageId}/analyze`, {
-    provider: params.provider || 'mock',
+    // 如果没有指定 provider,后端会使用 OCR_PROVIDER 环境变量的值
+    ...(params.provider ? { provider: params.provider } : {}),
     lang_hints: params.lang_hints || ['zh-Hans', 'en'],
   });
 }

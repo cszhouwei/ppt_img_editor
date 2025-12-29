@@ -201,6 +201,8 @@ repo/
 - [执行计划与任务分解](docs/Codex执行计划与任务分解-PPT截图文字可编辑化-MVP.md) - 详细的开发计划
 - **[验收指引](docs/验收指引.md)** - 完整的功能验收步骤和测试清单
 - **[开发流程指南](docs/开发流程指南.md)** - 日常开发、调试、问题排查流程
+- **[OCR Provider 切换指南](docs/OCR-Provider-切换指南.md)** - 如何切换不同的 OCR 服务(Mock/Google/Azure)
+- **[Google OCR 配置指南](docs/Google-OCR-配置指南.md)** - Google Cloud Vision API 详细配置步骤
 
 ## License
 

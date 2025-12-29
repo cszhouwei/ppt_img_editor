@@ -101,8 +101,11 @@ class GoogleOCRProvider(OCRProvider):
 
     async def _download_image(self, url: str) -> bytes:
         """下载图像"""
+        # 如果 URL 使用 localhost,替换为 minio(Docker 内部网络)
+        internal_url = url.replace("http://localhost:9000", "http://minio:9000")
+
         async with httpx.AsyncClient() as client:
-            response = await client.get(url, timeout=30.0)
+            response = await client.get(internal_url, timeout=30.0)
             if response.status_code != 200:
                 raise ValueError(f"Failed to download image: {url}")
             return response.content

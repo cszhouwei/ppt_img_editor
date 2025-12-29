@@ -109,8 +109,11 @@ class AzureOCRProvider(OCRProvider):
         Returns:
             图片字节数据
         """
+        # 如果 URL 使用 localhost,替换为 minio(Docker 内部网络)
+        internal_url = image_url.replace("http://localhost:9000", "http://minio:9000")
+
         async with httpx.AsyncClient() as client:
-            response = await client.get(image_url, timeout=30.0)
+            response = await client.get(internal_url, timeout=30.0)
             if response.status_code != 200:
                 raise ValueError(f"Failed to download image: {image_url}")
             return response.content
