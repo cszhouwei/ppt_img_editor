@@ -1,6 +1,7 @@
 """Mock OCR provider for testing"""
 import json
 import logging
+import uuid
 from pathlib import Path
 from typing import List
 from .base import OCRProvider, OCRCandidate
@@ -67,9 +68,11 @@ class MockOCRProvider(OCRProvider):
 
             candidates = []
             for idx, item in enumerate(data.get("candidates", [])):
-                # 如果 mock 数据没有 id,自动生成
+                # 如果 mock 数据没有 id,生成带 page_id 的唯一 ID
                 if "id" not in item:
-                    item["id"] = f"c_{idx + 1:03d}"
+                    # 使用 page_id 的一部分 + 随机后缀确保唯一性
+                    unique_suffix = uuid.uuid4().hex[:8]
+                    item["id"] = f"cand_{unique_suffix}"
 
                 # 确保有 bbox
                 if "bbox" not in item and "quad" in item:
