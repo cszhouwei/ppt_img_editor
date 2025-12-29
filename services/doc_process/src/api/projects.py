@@ -5,9 +5,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime
+from io import BytesIO
 
 from ..models.base import get_db
 from ..models import Project
+from ..config import get_settings, Settings
+from ..storage.minio_client import get_minio_client
+from ..utils.export import export_project_to_png
+from minio import Minio
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -216,3 +221,79 @@ async def delete_project(
         db.rollback()
         logger.error(f"Failed to delete project {project_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete project")
+
+
+class ExportResponse(BaseModel):
+    """导出响应"""
+    export_url: str
+
+
+@router.post("/{project_id}/export/png", response_model=ExportResponse)
+async def export_project_png(
+    project_id: str,
+    settings: Settings = Depends(get_settings),
+    db: Session = Depends(get_db),
+    minio_client: Minio = Depends(get_minio_client)
+) -> ExportResponse:
+    """
+    导出项目为 PNG 图像
+
+    Args:
+        project_id: 项目 ID
+
+    Returns:
+        ExportResponse: 包含导出文件的 URL
+
+    DoD:
+        - 验证 project_id 存在
+        - 下载背景图
+        - 按顺序渲染所有 layers (patch + text)
+        - 上传导出文件到 MinIO
+        - 返回导出文件 URL
+    """
+    try:
+        # 查询 project
+        project = db.query(Project).filter(Project.id == project_id).first()
+        if not project:
+            raise HTTPException(status_code=404, detail=f"Project not found: {project_id}")
+
+        logger.info(f"Exporting project {project_id} to PNG")
+
+        # 导出项目为 PNG
+        png_bytes = await export_project_to_png(
+            page_data=project.page_data,
+            layers=project.layers
+        )
+
+        logger.info(f"Project rendered successfully, size: {len(png_bytes)} bytes")
+
+        # 生成导出文件名
+        export_id = f"export_{uuid4().hex[:12]}"
+        object_name = f"exports/{export_id}.png"
+
+        # 上传到 MinIO
+        try:
+            minio_client.put_object(
+                bucket_name=settings.s3_bucket,
+                object_name=object_name,
+                data=BytesIO(png_bytes),
+                length=len(png_bytes),
+                content_type="image/png"
+            )
+            logger.info(f"Uploaded export to MinIO: {object_name}")
+        except Exception as e:
+            logger.error(f"Failed to upload export to MinIO: {e}")
+            raise HTTPException(status_code=500, detail="Failed to upload export to storage")
+
+        # 构造导出 URL
+        export_url = f"{settings.s3_public_base_url}/{object_name}"
+
+        logger.info(f"Export completed successfully: {export_url}")
+
+        return ExportResponse(export_url=export_url)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error exporting project {project_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to export project")

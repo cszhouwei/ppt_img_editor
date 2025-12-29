@@ -121,8 +121,15 @@ repo/
 - [x] 文本样式估计工具 (颜色、字号、字重)
 - [x] POST /v1/pages/{id}/estimate-style 接口 (估计样式)
 
+### Milestone 5 - 导出功能 ✅
+- [x] 图像合成工具 (下载、混合、渲染)
+- [x] POST /v1/projects/{id}/export/png 接口 (导出 PNG)
+- [x] Patch 层叠加 (透明 alpha 混合)
+- [x] 文本层渲染 (PIL ImageDraw)
+- [x] 字体支持 (DejaVu Sans)
+- [x] 导出文件上传到 MinIO
+
 ### 后续计划
-- [ ] Milestone 5: 导出
 - [ ] Milestone 6: 真实 OCR 接入
 
 ## 技术栈
