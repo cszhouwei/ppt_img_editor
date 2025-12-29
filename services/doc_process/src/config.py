@@ -23,7 +23,9 @@ class Settings(BaseSettings):
     postgres_dsn: str
 
     # OCR 配置
-    ocr_provider: str = "mock"
+    ocr_provider: str = "mock"  # mock | azure
+    azure_vision_endpoint: str = ""
+    azure_vision_key: str = ""
 
     # 日志配置
     log_level: str = "INFO"

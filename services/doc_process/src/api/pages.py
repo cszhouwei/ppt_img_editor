@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from ..config import get_settings, Settings
 from ..models.base import get_db
 from ..models import Page, Candidate, Patch
-from ..ocr import MockOCRProvider
+from ..ocr import MockOCRProvider, AzureOCRProvider
 from ..storage.minio_client import get_minio_client
 from ..patch import generate_patch
 from ..utils.text_style import estimate_text_style
@@ -157,13 +157,26 @@ async def analyze_page(
         if not page:
             raise HTTPException(status_code=404, detail=f"Page not found: {page_id}")
 
-        # 使用 Mock OCR provider
-        if request.provider == "mock" or settings.ocr_provider == "mock":
+        # 选择 OCR provider
+        provider_name = request.provider if request.provider else settings.ocr_provider
+
+        if provider_name == "mock":
             ocr_provider = MockOCRProvider()
+        elif provider_name == "azure":
+            # 验证 Azure 配置
+            if not settings.azure_vision_endpoint or not settings.azure_vision_key:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Azure Vision endpoint and key must be configured"
+                )
+            ocr_provider = AzureOCRProvider(
+                endpoint=settings.azure_vision_endpoint,
+                api_key=settings.azure_vision_key
+            )
         else:
             raise HTTPException(
                 status_code=400,
-                detail=f"Unsupported OCR provider: {request.provider}"
+                detail=f"Unsupported OCR provider: {provider_name}"
             )
 
         # 调用 OCR

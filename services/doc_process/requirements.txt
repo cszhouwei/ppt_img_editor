@@ -12,6 +12,7 @@ httpx==0.25.1
 numpy==1.26.2
 opencv-python-headless==4.8.1.78
 scipy==1.11.4
+azure-ai-vision-imageanalysis==1.0.0b2
 
 # 开发依赖
 pytest==7.4.3
