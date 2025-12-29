@@ -7,8 +7,12 @@ from pydantic import BaseModel
 
 from ..config import get_settings, Settings
 from ..models.base import get_db
-from ..models import Page, Candidate
+from ..models import Page, Candidate, Patch
 from ..ocr import MockOCRProvider
+from ..storage.minio_client import get_minio_client
+from ..patch import generate_patch
+from minio import Minio
+import httpx
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -49,6 +53,19 @@ class AnalyzeResponse(BaseModel):
     width: int
     height: int
     candidates: List[CandidateResponse]
+
+
+class PatchRequest(BaseModel):
+    """生成 patch 请求"""
+    candidate_id: str
+    padding_px: int = 8
+    mode: str = "auto"  # auto|solid|gradient|inpaint
+    algo_version: str = "v1"
+
+
+class PatchResponse(BaseModel):
+    """生成 patch 响应"""
+    patch: dict
 
 
 @router.post("", response_model=CreatePageResponse)
@@ -221,3 +238,126 @@ async def get_candidates(
     except Exception as e:
         logger.error(f"Failed to get candidates for page {page_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to get candidates")
+@router.post("/{page_id}/patch", response_model=PatchResponse)
+async def generate_patch_for_candidate(
+    page_id: str,
+    request: PatchRequest,
+    settings: Settings = Depends(get_settings),
+    db: Session = Depends(get_db),
+    minio_client: Minio = Depends(get_minio_client)
+) -> PatchResponse:
+    """
+    为指定的 candidate 生成 patch
+
+    Args:
+        page_id: 页面 ID
+        request: 包含 candidate_id, padding_px, mode, algo_version
+
+    Returns:
+        PatchResponse: 包含 patch 信息
+
+    DoD:
+        - 验证 page_id 和 candidate_id 存在
+        - 下载原图
+        - 调用 patch generation pipeline
+        - 上传 patch 到 MinIO
+        - 保存 patch 记录到数据库
+        - 返回 patch 信息
+    """
+    try:
+        # 验证 page 存在
+        page = db.query(Page).filter(Page.id == page_id).first()
+        if not page:
+            raise HTTPException(status_code=404, detail=f"Page not found: {page_id}")
+
+        # 验证 candidate 存在
+        candidate = db.query(Candidate).filter(
+            Candidate.id == request.candidate_id,
+            Candidate.page_id == page_id
+        ).first()
+        if not candidate:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Candidate not found: {request.candidate_id}"
+            )
+
+        logger.info(f"Generating patch for page={page_id}, candidate={request.candidate_id}")
+
+        # 下载原图
+        async with httpx.AsyncClient() as client:
+            image_response = await client.get(page.image_url, timeout=30.0)
+            if image_response.status_code != 200:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to download image: {image_response.status_code}"
+                )
+            image_bytes = image_response.content
+
+        # 调用 patch generation pipeline
+        candidate_data = {
+            "quad": candidate.quad,
+            "bbox": candidate.bbox
+        }
+
+        result = generate_patch(
+            image_bytes=image_bytes,
+            candidate=candidate_data,
+            padding_px=request.padding_px,
+            mode=request.mode,
+            algo_version=request.algo_version
+        )
+
+        if not result.success:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Patch generation failed: {result.error}"
+            )
+
+        # 生成 patch_id
+        patch_id = f"p_{uuid4().hex[:12]}"
+
+        # 上传 patch 到 MinIO
+        object_name = f"patches/{patch_id}.png"
+
+        try:
+            minio_client.put_object(
+                bucket_name=settings.s3_bucket,
+                object_name=object_name,
+                data=io.BytesIO(result.patch_bytes),
+                length=len(result.patch_bytes),
+                content_type="image/png"
+            )
+            logger.info(f"Uploaded patch to MinIO: {object_name}")
+        except Exception as e:
+            logger.error(f"Failed to upload patch to MinIO: {e}")
+            raise HTTPException(status_code=500, detail="Failed to upload patch to storage")
+
+        # 构造 patch URL
+        patch_url = f"{settings.s3_public_base_url}/{object_name}"
+
+        # 保存 patch 记录到数据库
+        patch_record = Patch(
+            id=patch_id,
+            page_id=page_id,
+            candidate_id=request.candidate_id,
+            bbox=result.bbox,
+            image_url=patch_url,
+            debug_info=result.debug_info
+        )
+
+        db.add(patch_record)
+        db.commit()
+        db.refresh(patch_record)
+
+        logger.info(f"Patch generated successfully: {patch_id}")
+
+        return PatchResponse(
+            patch=patch_record.to_dict()
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Unexpected error generating patch: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to generate patch")

@@ -104,8 +104,17 @@ repo/
 - [x] POST /v1/pages/{id}/analyze 接口 (Mock OCR 分析)
 - [x] GET /v1/pages/{id}/candidates 接口 (查询候选框)
 
+### Milestone 3 - Patch Pipeline (核心) ✅
+- [x] Patch 生成模块 (geometry, mask, bg_fit, inpaint, compose, pipeline)
+- [x] Patches 数据库模型和表
+- [x] POST /v1/pages/{id}/patch 接口 (生成 patch)
+- [x] OpenCV 图像处理集成
+- [x] 背景类型分析 (纯色/渐变/复杂)
+- [x] 透明 patch PNG 生成
+
 ### 后续计划
-- [ ] Milestone 3: Patch pipeline
+- [ ] Milestone 4: 文本层编辑与保存
+- [ ] Milestone 5: 导出
 - [ ] Milestone 4: 文本层编辑与保存
 - [ ] Milestone 5: 导出
 - [ ] Milestone 6: 真实 OCR 接入

@@ -25,9 +25,23 @@ CREATE TABLE IF NOT EXISTS candidates (
 
 CREATE INDEX IF NOT EXISTS idx_candidates_page_id ON candidates(page_id);
 
+-- Milestone 3: Patches 表
+CREATE TABLE IF NOT EXISTS patches (
+    id VARCHAR(64) PRIMARY KEY,
+    page_id VARCHAR(64) NOT NULL REFERENCES pages(id) ON DELETE CASCADE,
+    candidate_id VARCHAR(64) REFERENCES candidates(id) ON DELETE SET NULL,
+    bbox JSONB NOT NULL,  -- {"x": 110, "y": 72, "w": 440, "h": 84}
+    image_url TEXT NOT NULL,
+    debug_info JSONB,  -- {"bg_model": "solid", "mae": 6.1, ...}
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_patches_page_id ON patches(page_id);
+CREATE INDEX IF NOT EXISTS idx_patches_candidate_id ON patches(candidate_id);
+
 -- 打印初始化信息
 DO $$
 BEGIN
     RAISE NOTICE 'PostgreSQL database initialized successfully';
-    RAISE NOTICE 'Milestone 2: Pages and Candidates tables created';
+    RAISE NOTICE 'Milestone 3: Pages, Candidates, and Patches tables created';
 END $$;
