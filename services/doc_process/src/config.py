@@ -23,9 +23,11 @@ class Settings(BaseSettings):
     postgres_dsn: str
 
     # OCR 配置
-    ocr_provider: str = "mock"  # mock | azure
+    ocr_provider: str = "mock"  # mock | azure | google
     azure_vision_endpoint: str = ""
     azure_vision_key: str = ""
+    google_credentials_path: str = ""  # Google Cloud 服务账号 JSON 文件路径
+    google_credentials_json: str = ""  # Google Cloud 服务账号 JSON 字符串
 
     # 日志配置
     log_level: str = "INFO"

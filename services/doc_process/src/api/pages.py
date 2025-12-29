@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from ..config import get_settings, Settings
 from ..models.base import get_db
 from ..models import Page, Candidate, Patch
-from ..ocr import MockOCRProvider, AzureOCRProvider
+from ..ocr import MockOCRProvider, AzureOCRProvider, GoogleOCRProvider
 from ..storage.minio_client import get_minio_client
 from ..patch import generate_patch
 from ..utils.text_style import estimate_text_style
@@ -172,6 +172,17 @@ async def analyze_page(
             ocr_provider = AzureOCRProvider(
                 endpoint=settings.azure_vision_endpoint,
                 api_key=settings.azure_vision_key
+            )
+        elif provider_name == "google":
+            # 验证 Google Cloud 配置
+            if not settings.google_credentials_path and not settings.google_credentials_json:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Google Cloud credentials must be configured (GOOGLE_CREDENTIALS_PATH or GOOGLE_CREDENTIALS_JSON)"
+                )
+            ocr_provider = GoogleOCRProvider(
+                credentials_path=settings.google_credentials_path or None,
+                credentials_json=settings.google_credentials_json or None
             )
         else:
             raise HTTPException(

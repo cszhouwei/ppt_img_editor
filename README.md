@@ -51,6 +51,12 @@ curl -X POST http://localhost:8080/v1/pages/page_xxx/analyze \
 curl -X POST http://localhost:8080/v1/pages/page_xxx/analyze \
   -H "Content-Type: application/json" \
   -d '{"provider":"azure","lang_hints":["zh-Hans","en"]}'
+
+# OCR 分析 (使用 Google Cloud Vision)
+# 需要先配置 GOOGLE_CREDENTIALS_PATH 或 GOOGLE_CREDENTIALS_JSON
+curl -X POST http://localhost:8080/v1/pages/page_xxx/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"provider":"google","lang_hints":["zh-Hans","en"]}'
 ```
 
 ### 访问地址
@@ -86,7 +92,7 @@ repo/
 
 ## 核心功能
 
-- **OCR 文字识别**: 支持多种 OCR 提供商 (Mock / Azure Computer Vision)
+- **OCR 文字识别**: 支持多种 OCR 提供商 (Mock / Azure Computer Vision / Google Cloud Vision)
 - **智能背景修复**: 抹除原文字并自动补齐背景
 - **文本可编辑化**: 将识别的文字转换为可编辑的文本对象
 - **富文本编辑**: 支持修改内容、样式、位置等
@@ -138,11 +144,12 @@ repo/
 ### Milestone 6 - 真实 OCR 接入 ✅
 - [x] OCR Provider 抽象接口设计
 - [x] Azure Computer Vision Read API 集成
+- [x] Google Cloud Vision API 集成
 - [x] OCR provider 配置和特性开关
-- [x] Azure 结果格式解析和归一化
+- [x] 结果格式解析和归一化 (Azure/Google)
 - [x] 错误处理和重试逻辑
-- [x] 环境变量配置 (AZURE_VISION_ENDPOINT, AZURE_VISION_KEY)
-- [x] Provider 选择逻辑 (mock/azure)
+- [x] 环境变量配置 (Azure/Google)
+- [x] Provider 选择逻辑 (mock/azure/google)
 
 ### 后续计划
 - [ ] Milestone 7: 前端实现 (React + TypeScript)
@@ -152,7 +159,7 @@ repo/
 - **后端**: Python 3.11 + FastAPI + Uvicorn
 - **数据库**: PostgreSQL 15
 - **对象存储**: MinIO (S3 兼容)
-- **OCR**: Azure Computer Vision API (可配置为 Mock)
+- **OCR**: Azure Computer Vision / Google Cloud Vision (可配置为 Mock)
 - **图像处理**: OpenCV + Pillow + NumPy
 - **前端**: React + TypeScript (待实现)
 - **容器化**: Docker + Docker Compose
