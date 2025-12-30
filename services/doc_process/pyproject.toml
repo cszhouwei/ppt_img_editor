@@ -7,12 +7,39 @@ requires-python = ">=3.11"
 [tool.black]
 line-length = 100
 target-version = ['py311']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | venv
+  | env
+  | build
+  | dist
+)/
+'''
 
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+select = ["E", "F", "W", "I", "N"]
+ignore = ["E501"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+include_trailing_comma = true
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
 asyncio_mode = "auto"
+addopts = "-v --tb=short --cov=src --cov-report=html --cov-report=term-missing"

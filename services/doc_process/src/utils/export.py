@@ -20,8 +20,11 @@ async def download_image(url: str) -> np.ndarray:
     Returns:
         图像数组 (H, W, 3) BGR
     """
+    # 在 Docker 容器内，需要将 localhost 替换为服务名
+    internal_url = url.replace("http://localhost:9000", "http://minio:9000")
+
     async with httpx.AsyncClient() as client:
-        response = await client.get(url, timeout=30.0)
+        response = await client.get(internal_url, timeout=30.0)
         if response.status_code != 200:
             raise ValueError(f"Failed to download image: {url}")
 
@@ -35,7 +38,7 @@ async def download_image(url: str) -> np.ndarray:
         return image
 
 
-def blend_patch_layer(
+async def blend_patch_layer(
     base_image: np.ndarray,
     patch_layer: Dict[str, Any]
 ) -> np.ndarray:
@@ -49,11 +52,9 @@ def blend_patch_layer(
     Returns:
         叠加后的图像
     """
-    import asyncio
-
     # 下载 patch 图像
     patch_url = patch_layer["image_url"]
-    patch_image = asyncio.run(download_image(patch_url))
+    patch_image = await download_image(patch_url)
 
     # 获取 bbox
     bbox = patch_layer["bbox"]
@@ -232,7 +233,7 @@ async def export_project_to_png(
 
         if kind == "patch":
             # 渲染 patch 层
-            result_image = blend_patch_layer(result_image, layer)
+            result_image = await blend_patch_layer(result_image, layer)
         elif kind == "text":
             # 渲染文本层
             result_image = render_text_layer(result_image, layer)

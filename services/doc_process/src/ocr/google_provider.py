@@ -229,12 +229,58 @@ class GoogleOCRProvider(OCRProvider):
         return candidates
 
     def _extract_text_from_paragraph(self, paragraph) -> str:
-        """从段落中提取文本"""
+        """
+        从段落中提取文本，使用 DetectedBreak 智能处理空格
+
+        通过 Google Cloud Vision 的 DetectedBreak 信息，
+        我们可以精确知道每个字符后面是否需要空格，
+        避免在中文字符间插入多余空格。
+
+        DetectedBreak 类型说明：
+        - SPACE: 常规空格
+        - SURE_SPACE: 确定的空格（较宽）
+        - EOL_SURE_SPACE: 行尾换行造成的空格
+        - HYPHEN: 连字符（不添加空格）
+        - LINE_BREAK: 段落结束的换行（不添加空格）
+        - UNKNOWN: 未知类型（不添加空格，避免误加）
+        """
         text_parts = []
+
         for word in paragraph.words:
-            word_text = "".join([symbol.text for symbol in word.symbols])
-            text_parts.append(word_text)
-        return " ".join(text_parts)
+            word_chars = []
+
+            for symbol in word.symbols:
+                # 添加字符本身
+                word_chars.append(symbol.text)
+
+                # 检查字符后是否有 break (空格、换行等)
+                if hasattr(symbol, 'property') and symbol.property:
+                    detected_break = symbol.property.detected_break
+
+                    if detected_break:
+                        break_type = detected_break.type
+
+                        # 根据 break 类型决定是否添加空格
+                        # 只在明确需要空格的类型中添加
+                        if break_type.name in ['SPACE', 'SURE_SPACE', 'EOL_SURE_SPACE']:
+                            word_chars.append(' ')
+
+                        # 调试日志（可选，生产环境可注释）
+                        if logger.isEnabledFor(logging.DEBUG):
+                            logger.debug(
+                                f"Symbol '{symbol.text}' has break type: {break_type.name}"
+                            )
+
+            text_parts.append("".join(word_chars))
+
+        # 直接拼接，不再添加额外空格
+        # 因为空格信息已经在 DetectedBreak 中处理了
+        result = "".join(text_parts)
+
+        # 调试日志
+        logger.debug(f"Extracted text from paragraph: '{result}'")
+
+        return result
 
     def _calculate_confidence(self, paragraph) -> float:
         """计算段落的平均置信度"""

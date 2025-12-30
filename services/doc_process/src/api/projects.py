@@ -56,6 +56,30 @@ class ProjectResponse(BaseModel):
     updated_at: str = None
 
 
+@router.get("", response_model=List[ProjectResponse])
+async def list_projects(
+    db: Session = Depends(get_db),
+    limit: int = 20,
+    offset: int = 0
+) -> List[ProjectResponse]:
+    """
+    获取项目列表
+
+    Args:
+        limit: 返回数量限制
+        offset: 偏移量
+
+    Returns:
+        List[ProjectResponse]: 项目列表
+    """
+    try:
+        projects = db.query(Project).order_by(Project.updated_at.desc()).offset(offset).limit(limit).all()
+        return [ProjectResponse(**project.to_dict()) for project in projects]
+    except Exception as e:
+        logger.error(f"Failed to list projects: {e}")
+        raise HTTPException(status_code=500, detail="Failed to list projects")
+
+
 @router.post("", response_model=ProjectResponse)
 async def create_project(
     request: CreateProjectRequest,

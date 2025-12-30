@@ -115,7 +115,3 @@ export interface EstimateStyleResponse {
   candidate_id: string;
   style: TextStyle;
 }
-
-export interface ExportResponse {
-  export_url: string;
-}

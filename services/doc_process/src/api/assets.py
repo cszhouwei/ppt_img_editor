@@ -1,7 +1,8 @@
 import io
 import logging
 from uuid import uuid4
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from minio import Minio
 
@@ -109,3 +110,46 @@ async def upload_asset(
     except Exception as e:
         logger.error(f"Unexpected error during upload: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/download")
+async def download_asset(
+    path: str = Query(..., description="MinIO object path (e.g., exports/export_xxx.png)"),
+    settings: Settings = Depends(get_settings),
+    minio_client: Minio = Depends(get_minio_client)
+):
+    """
+    下载 MinIO 中的文件（代理）
+
+    Args:
+        path: MinIO 中的对象路径
+
+    Returns:
+        StreamingResponse: 文件流
+    """
+    try:
+        # 从 MinIO 获取文件
+        response = minio_client.get_object(
+            bucket_name=settings.s3_bucket,
+            object_name=path
+        )
+
+        # 确定 content-type
+        content_type = "application/octet-stream"
+        if path.endswith('.png'):
+            content_type = "image/png"
+        elif path.endswith('.jpg') or path.endswith('.jpeg'):
+            content_type = "image/jpeg"
+
+        # 返回流式响应
+        return StreamingResponse(
+            response,
+            media_type=content_type,
+            headers={
+                "Content-Disposition": f"attachment; filename={path.split('/')[-1]}"
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to download file from MinIO: {e}")
+        raise HTTPException(status_code=404, detail="File not found")

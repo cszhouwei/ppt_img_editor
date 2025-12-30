@@ -30,6 +30,10 @@ interface EditorState {
   updateLayer: (layerId: string, updates: Partial<Layer>) => void;
   removeLayer: (layerId: string) => void;
 
+  // 选中的图层
+  selectedLayer: Layer | null;
+  setSelectedLayer: (layer: Layer | null) => void;
+
   // 当前项目
   currentProject: Project | null;
   setCurrentProject: (project: Project | null) => void;
@@ -51,6 +55,7 @@ const initialState = {
   selectedCandidate: null,
   patches: new Map(),
   layers: [],
+  selectedLayer: null,
   currentProject: null,
   isLoading: false,
   loadingMessage: '',
@@ -80,16 +85,30 @@ export const useEditorStore = create<EditorState>((set) => ({
     })),
 
   updateLayer: (layerId, updates) =>
-    set((state) => ({
-      layers: state.layers.map((layer) =>
-        layer.id === layerId ? { ...layer, ...updates } : layer
-      ),
-    })),
+    set((state) => {
+      const updatedLayers = state.layers.map((layer) =>
+        layer.id === layerId ? { ...layer, ...updates } as Layer : layer
+      );
+
+      // 同步更新 selectedLayer，确保编辑器显示最新值
+      const updatedSelectedLayer =
+        state.selectedLayer?.id === layerId
+          ? updatedLayers.find((layer) => layer.id === layerId) || state.selectedLayer
+          : state.selectedLayer;
+
+      return {
+        layers: updatedLayers,
+        selectedLayer: updatedSelectedLayer,
+      };
+    }),
 
   removeLayer: (layerId) =>
     set((state) => ({
       layers: state.layers.filter((layer) => layer.id !== layerId),
+      selectedLayer: state.selectedLayer?.id === layerId ? null : state.selectedLayer,
     })),
+
+  setSelectedLayer: (layer) => set({ selectedLayer: layer }),
 
   setCurrentProject: (project) => set({ currentProject: project }),
 

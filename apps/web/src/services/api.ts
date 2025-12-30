@@ -106,10 +106,16 @@ export async function generatePatch(
  */
 export async function estimateStyle(
   pageId: string,
-  candidateId: string
+  candidateId: string,
+  options?: {
+    colorMethod?: 'kmeans' | 'median' | 'edge' | 'mean';
+    debug?: boolean;
+  }
 ): Promise<EstimateStyleResponse> {
   return api.post(`/v1/pages/${pageId}/estimate-style`, {
     candidate_id: candidateId,
+    color_method: options?.colorMethod || 'kmeans',
+    debug: options?.debug || false,
   });
 }
 
@@ -129,6 +135,13 @@ export async function createProject(params: {
     page: params.page,
     layers: params.layers || [],
   });
+}
+
+/**
+ * 获取项目列表
+ */
+export async function listProjects(limit: number = 20, offset: number = 0): Promise<Project[]> {
+  return api.get(`/v1/projects?limit=${limit}&offset=${offset}`);
 }
 
 /**
@@ -156,11 +169,4 @@ export async function updateProject(
  */
 export async function deleteProject(projectId: string): Promise<void> {
   return api.delete(`/v1/projects/${projectId}`);
-}
-
-/**
- * 导出项目为 PNG
- */
-export async function exportProject(projectId: string): Promise<ExportResponse> {
-  return api.post(`/v1/projects/${projectId}/export/png`);
 }

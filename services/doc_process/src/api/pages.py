@@ -75,6 +75,8 @@ class PatchResponse(BaseModel):
 class EstimateStyleRequest(BaseModel):
     """估计文本样式请求"""
     candidate_id: str
+    color_method: str = "kmeans"  # 颜色估计方法: kmeans, median, edge, mean
+    debug: bool = False  # 是否返回调试信息
 
 
 class EstimateStyleResponse(BaseModel):
@@ -465,12 +467,27 @@ async def estimate_style_for_candidate(
         # 估计样式
         candidate_data = {
             "quad": candidate.quad,
-            "bbox": candidate.bbox
+            "bbox": candidate.bbox,
+            "text": candidate.text,
+            "confidence": candidate.confidence
         }
 
-        style = estimate_text_style(image, candidate_data)
+        style = estimate_text_style(
+            image,
+            candidate_data,
+            color_method=request.color_method,
+            font_size_method="auto",  # 使用组合方法
+            debug=request.debug
+        )
 
-        logger.info(f"Style estimated successfully for {request.candidate_id}")
+        # 记录估计的样式信息
+        logger.info(
+            f"Style estimated for {request.candidate_id}: "
+            f"method={request.color_method}, "
+            f"color={style['fill']}, "
+            f"fontSize={style['fontSize']}px, "
+            f"fontWeight={style['fontWeight']}"
+        )
 
         return EstimateStyleResponse(
             candidate_id=request.candidate_id,

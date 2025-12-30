@@ -63,3 +63,9 @@ temp/
 coverage/
 .nyc_output/
 *.lcov
+htmlcov/
+
+# Testing
+test-results/
+playwright-report/
+.playwright/

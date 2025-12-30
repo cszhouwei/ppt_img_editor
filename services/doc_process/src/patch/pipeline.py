@@ -108,7 +108,12 @@ def generate_patch(
 
         if mode in ["auto", "solid"]:
             # 尝试纯色拟合
-            is_solid, mean_color = is_solid_color(bg_pixels.reshape(-1, bg_pixels.shape[-1], 3))
+            # bg_pixels 是 (N, 3) 数组,需要 reshape 成 (1, N, 3) 以匹配 is_solid_color 的输入格式
+            if bg_pixels.size > 0:
+                bg_pixels_reshaped = bg_pixels.reshape(1, -1, 3)
+            else:
+                bg_pixels_reshaped = np.zeros((1, 1, 3), dtype=np.uint8)
+            is_solid, mean_color = is_solid_color(bg_pixels_reshaped)
             if is_solid:
                 bg_model = "solid"
                 fill = generate_solid_fill((bh, bw), mean_color)

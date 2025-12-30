@@ -8,7 +8,13 @@ import type { Layer } from '../types';
 
 export function LayerPanel() {
   const layers = useEditorStore((state) => state.layers);
+  const selectedLayer = useEditorStore((state) => state.selectedLayer);
+  const setSelectedLayer = useEditorStore((state) => state.setSelectedLayer);
   const removeLayer = useEditorStore((state) => state.removeLayer);
+
+  const handleSelectLayer = (layer: Layer) => {
+    setSelectedLayer(layer);
+  };
 
   const handleDeleteLayer = (layerId: string) => {
     if (confirm('确定要删除这个图层吗?')) {
@@ -35,7 +41,13 @@ export function LayerPanel() {
       ) : (
         <div className="layer-list">
           {layers.map((layer, index) => (
-            <div key={layer.id} className="layer-item">
+            <div
+              key={layer.id}
+              className={`layer-item ${
+                selectedLayer?.id === layer.id ? 'selected' : ''
+              }`}
+              onClick={() => handleSelectLayer(layer)}
+            >
               <div className="layer-info">
                 <span className="layer-type">
                   {layer.kind === 'text' ? '📝' : '🖼️'}
@@ -45,7 +57,10 @@ export function LayerPanel() {
               </div>
               <button
                 className="btn-delete"
-                onClick={() => handleDeleteLayer(layer.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteLayer(layer.id);
+                }}
                 title="删除图层"
               >
                 ✕
